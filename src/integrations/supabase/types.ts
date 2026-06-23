@@ -14,7 +14,117 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      business_info: {
+        Row: {
+          formas_pago: string | null
+          horario: string | null
+          id: string
+          minimo_compra: string | null
+          nombre: string | null
+          telefono: string | null
+          updated_at: string
+          zona_entrega: string | null
+        }
+        Insert: {
+          formas_pago?: string | null
+          horario?: string | null
+          id?: string
+          minimo_compra?: string | null
+          nombre?: string | null
+          telefono?: string | null
+          updated_at?: string
+          zona_entrega?: string | null
+        }
+        Update: {
+          formas_pago?: string | null
+          horario?: string | null
+          id?: string
+          minimo_compra?: string | null
+          nombre?: string | null
+          telefono?: string | null
+          updated_at?: string
+          zona_entrega?: string | null
+        }
+        Relationships: []
+      }
+      clientes: {
+        Row: {
+          condicion: Database["public"]["Enums"]["condicion_cliente"]
+          created_at: string
+          id: string
+          nombre: string
+          telefono: string
+        }
+        Insert: {
+          condicion?: Database["public"]["Enums"]["condicion_cliente"]
+          created_at?: string
+          id?: string
+          nombre: string
+          telefono: string
+        }
+        Update: {
+          condicion?: Database["public"]["Enums"]["condicion_cliente"]
+          created_at?: string
+          id?: string
+          nombre?: string
+          telefono?: string
+        }
+        Relationships: []
+      }
+      conversaciones: {
+        Row: {
+          cliente: string
+          estado: Database["public"]["Enums"]["estado_conversacion"]
+          fecha: string
+          id: string
+          mensaje: string
+          respuesta: string
+        }
+        Insert: {
+          cliente: string
+          estado?: Database["public"]["Enums"]["estado_conversacion"]
+          fecha?: string
+          id?: string
+          mensaje: string
+          respuesta?: string
+        }
+        Update: {
+          cliente?: string
+          estado?: Database["public"]["Enums"]["estado_conversacion"]
+          fecha?: string
+          id?: string
+          mensaje?: string
+          respuesta?: string
+        }
+        Relationships: []
+      }
+      productos: {
+        Row: {
+          activo: boolean
+          created_at: string
+          id: string
+          nombre: string
+          precio: number
+          stock: number
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          id?: string
+          nombre: string
+          precio?: number
+          stock?: number
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          id?: string
+          nombre?: string
+          precio?: number
+          stock?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +133,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      condicion_cliente: "frecuente" | "nuevo" | "lista_negra"
+      estado_conversacion: "respondido" | "escalado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +261,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      condicion_cliente: ["frecuente", "nuevo", "lista_negra"],
+      estado_conversacion: ["respondido", "escalado"],
+    },
   },
 } as const
