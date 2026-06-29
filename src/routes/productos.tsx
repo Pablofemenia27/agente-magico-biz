@@ -56,6 +56,9 @@ function ProductosPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Producto | null>(null);
   const [form, setForm] = useState<Omit<Producto, "id">>({ nombre: "", precio: 0, stock: 0, activo: true });
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ created: number; updated: number; skipped: number; errors: string[] } | null>(null);
 
   const load = async () => {
     setLoading(true);
