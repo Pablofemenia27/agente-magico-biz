@@ -38,12 +38,22 @@ function parseNum(v: unknown): number {
   return isFinite(n) ? n : 0;
 }
 
+function normalizeKey(k: string): string {
+  return k
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
 function pick(row: Record<string, unknown>, keys: string[]): unknown {
-  const norm = (k: string) => k.toLowerCase().trim().replace(/\s+/g, "_");
   const map: Record<string, unknown> = {};
-  for (const k of Object.keys(row)) map[norm(k)] = row[k];
+  for (const k of Object.keys(row)) map[normalizeKey(k)] = row[k];
   for (const k of keys) {
-    const v = map[norm(k)];
+    const v = map[normalizeKey(k)];
     if (v !== undefined && v !== "") return v;
   }
   return undefined;
