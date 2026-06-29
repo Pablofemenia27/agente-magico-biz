@@ -115,6 +115,72 @@ function ProductosPage() {
     load();
   };
 
+  const downloadTemplate = () => {
+    const ws = XLSX.utils.json_to_sheet([
+      { nombre: "Ejemplo Producto", precio: 1500, stock: 10, activo: "SI" },
+    ]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Productos");
+    XLSX.writeFile(wb, "plantilla_productos.xlsx");
+  };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: "" });
+
+      const { data: existing, error: exErr } = await supabase.from("productos").select("id,nombre");
+      if (exErr) throw new Error(exErr.message);
+      const byName = new Map<string, string>();
+      (existing ?? []).forEach((p: { id: string; nombre: string }) =>
+        byName.set(p.nombre.trim().toLowerCase(), p.id)
+      );
+
+      let created = 0, updated = 0, skipped = 0;
+      const errors: string[] = [];
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const nombre = String(pick(row, ["nombre", "producto", "name"]) ?? "").trim();
+        if (!nombre) { skipped++; continue; }
+        const payload = {
+          nombre,
+          precio: parseNum(pick(row, ["precio", "price"])),
+          stock: Math.trunc(parseNum(pick(row, ["stock", "cantidad", "qty"]))),
+          activo: parseBool(pick(row, ["activo", "active", "habilitado"])),
+        };
+        const existingId = byName.get(nombre.toLowerCase());
+        if (existingId) {
+          const { error } = await supabase.from("productos").update(payload).eq("id", existingId);
+          if (error) errors.push(`Fila ${i + 2} (${nombre}): ${error.message}`);
+          else updated++;
+        } else {
+          const { data: ins, error } = await supabase.from("productos").insert(payload).select("id").single();
+          if (error) errors.push(`Fila ${i + 2} (${nombre}): ${error.message}`);
+          else { created++; if (ins) byName.set(nombre.toLowerCase(), ins.id); }
+        }
+      }
+
+      setImportResult({ created, updated, skipped, errors });
+      toast.success(`Importación: ${created} creados, ${updated} actualizados${skipped ? `, ${skipped} omitidos` : ""}`);
+      load();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Error al importar";
+      toast.error(msg);
+      setImportResult({ created: 0, updated: 0, skipped: 0, errors: [msg] });
+    } finally {
+      setImporting(false);
+    }
+  };
+
+
   return (
     <div className="p-6 md:p-10">
       <header className="mb-8 flex items-center gap-3">
