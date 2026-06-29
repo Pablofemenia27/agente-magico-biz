@@ -144,7 +144,28 @@ function ProductosPage() {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type: "array" });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: "" });
+
+      // Read as array-of-arrays and auto-detect header row (scan first 10 rows for one containing producto/nombre).
+      const matrix: unknown[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", blankrows: false });
+      const nameAliases = ["nombre", "producto", "productos", "name", "item", "descripcion", "descripción"];
+      let headerIdx = -1;
+      for (let i = 0; i < Math.min(matrix.length, 10); i++) {
+        const normalized = matrix[i].map((c) => normalizeKey(String(c ?? "")));
+        if (normalized.some((c) => nameAliases.includes(c))) { headerIdx = i; break; }
+      }
+      if (headerIdx === -1) {
+        throw new Error(
+          `No se encontró una columna de nombre/producto. Encabezados detectados: ${
+            (matrix[0] ?? []).map((c) => String(c)).join(" | ") || "(vacío)"
+          }`
+        );
+      }
+      const headers = matrix[headerIdx].map((c) => String(c ?? ""));
+      const rows: Record<string, unknown>[] = matrix.slice(headerIdx + 1).map((r) => {
+        const obj: Record<string, unknown> = {};
+        headers.forEach((h, j) => { obj[h] = r[j] ?? ""; });
+        return obj;
+      });
 
       const { data: existing, error: exErr } = await supabase.from("productos").select("id,nombre");
       if (exErr) throw new Error(exErr.message);
@@ -158,8 +179,9 @@ function ProductosPage() {
 
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
-        const nombre = String(pick(row, ["nombre", "producto", "name"]) ?? "").trim();
+        const nombre = String(pick(row, nameAliases) ?? "").trim();
         if (!nombre) { skipped++; continue; }
+
         const payload = {
           nombre,
           precio: parseNum(pick(row, ["precio", "price"])),
