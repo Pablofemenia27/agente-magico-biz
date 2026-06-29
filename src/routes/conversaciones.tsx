@@ -84,7 +84,7 @@ function ConversacionesPage() {
   const threads = useMemo<Thread[]>(() => {
     const groups = new Map<string, Conv[]>();
     for (const c of items) {
-      const k = (c.telefono ?? c.cliente ?? "").trim() || "sin-id";
+      const k = (c.telefono && c.telefono.trim() !== "" ? c.telefono : c.cliente ?? "").trim() || "sin-id";
       if (!groups.has(k)) groups.set(k, []);
       groups.get(k)!.push(c);
     }
