@@ -293,6 +293,37 @@ function ProductosPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!importResult} onOpenChange={(o) => !o && setImportResult(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Resultado de importación</DialogTitle>
+            <DialogDescription>
+              Se procesó el archivo Excel. Los productos existentes (mismo nombre) fueron actualizados; los nuevos se crearon.
+            </DialogDescription>
+          </DialogHeader>
+          {importResult && (
+            <div className="space-y-3 py-2 text-sm">
+              <div className="grid grid-cols-3 gap-3">
+                <Stat label="Creados" value={importResult.created} />
+                <Stat label="Actualizados" value={importResult.updated} />
+                <Stat label="Omitidos" value={importResult.skipped} />
+              </div>
+              {importResult.errors.length > 0 && (
+                <div className="space-y-1">
+                  <p className="font-medium text-destructive">Errores ({importResult.errors.length})</p>
+                  <ul className="max-h-40 overflow-auto rounded border border-border bg-muted/30 p-2 text-xs space-y-1">
+                    {importResult.errors.slice(0, 50).map((e, i) => <li key={i}>{e}</li>)}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setImportResult(null)}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
