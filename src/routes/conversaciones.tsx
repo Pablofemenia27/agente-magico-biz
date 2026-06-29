@@ -102,19 +102,18 @@ function ConversacionesPage() {
       let telefono: string;
 
       if (nombreLookup) {
-        nombre = nombreLookup;
-        telefono = key;
-      } else if (isWeb) {
-        nombre = "Visitante Web";
-        telefono = key;
-      } else if (isPhone) {
-        nombre = key;
-        telefono = key;
-      } else {
-        nombre = arr[0]?.cliente || key;
-        telefono = key;
-      }
-
+  nombre = nombreLookup;
+  telefono = key;
+} else if (key.startsWith("web-")) {
+  nombre = "Visitante Web";
+  telefono = key.slice(-6);
+} else if (isPhone) {
+  nombre = key;
+  telefono = key;
+} else {
+  nombre = arr[0]?.cliente || key;
+  telefono = key;
+}
       list.push({
         key,
         nombre,
