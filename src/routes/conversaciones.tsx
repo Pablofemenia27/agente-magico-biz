@@ -16,6 +16,7 @@ type Conv = {
   id: string;
   fecha: string;
   cliente: string;
+  telefono: string;
   mensaje: string;
   respuesta: string;
   estado: Estado;
@@ -63,7 +64,7 @@ function ConversacionesPage() {
       const [convRes, cliRes] = await Promise.all([
         supabase
           .from("conversaciones")
-          .select("*")
+          .select("id, fecha, cliente, mensaje, respuesta, estado, telefono")
           .order("fecha", { ascending: false }),
         supabase.from("clientes").select("telefono,nombre"),
       ]);
@@ -83,7 +84,7 @@ function ConversacionesPage() {
   const threads = useMemo<Thread[]>(() => {
     const groups = new Map<string, Conv[]>();
     for (const c of items) {
-      const k = (c.cliente ?? "").trim() || "—";
+      const k = (c.telefono ?? c.cliente ?? "").trim() || "sin-id";
       if (!groups.has(k)) groups.set(k, []);
       groups.get(k)!.push(c);
     }
@@ -94,12 +95,29 @@ function ConversacionesPage() {
       );
       const last = sorted[sorted.length - 1];
       const nombreLookup = nombreByTelefono.get(key);
+      const isWeb = key.startsWith("web-");
       const isPhone = /^[+\d\s()-]{6,}$/.test(key);
-      const nombre = nombreLookup ?? (isPhone ? key : key);
-      const telefono = isPhone ? key : nombreLookup ? key : "";
+
+      let nombre: string;
+      let telefono: string;
+
+      if (nombreLookup) {
+        nombre = nombreLookup;
+        telefono = key;
+      } else if (isWeb) {
+        nombre = "Visitante Web";
+        telefono = key;
+      } else if (isPhone) {
+        nombre = key;
+        telefono = key;
+      } else {
+        nombre = arr[0]?.cliente || key;
+        telefono = key;
+      }
+
       list.push({
         key,
-        nombre: nombre || key,
+        nombre,
         telefono,
         lastMessage: last.mensaje || last.respuesta || "",
         lastDate: last.fecha,
@@ -108,7 +126,8 @@ function ConversacionesPage() {
       });
     }
     list.sort(
-      (a, b) => new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime()
+      (a, b) =>
+        new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime()
     );
     return list;
   }, [items, nombreByTelefono]);
@@ -160,10 +179,14 @@ function ConversacionesPage() {
           </div>
           <div className="flex-1 overflow-y-auto">
             {loading ? (
-              <div className="p-6 text-center text-sm text-muted-foreground">Cargando...</div>
+              <div className="p-6 text-center text-sm text-muted-foreground">
+                Cargando...
+              </div>
             ) : filteredThreads.length === 0 ? (
               <div className="p-6 text-center text-sm text-muted-foreground">
-                {threads.length === 0 ? "Aún no hay conversaciones." : "Sin resultados."}
+                {threads.length === 0
+                  ? "Aún no hay conversaciones."
+                  : "Sin resultados."}
               </div>
             ) : (
               filteredThreads.map((t) => {
@@ -178,7 +201,9 @@ function ConversacionesPage() {
                     )}
                   >
                     <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="font-medium text-sm truncate">{t.nombre}</span>
+                      <span className="font-medium text-sm truncate">
+                        {t.nombre}
+                      </span>
                       <span className="text-[11px] text-muted-foreground shrink-0">
                         {formatTime(t.lastDate)}
                       </span>
@@ -196,6 +221,11 @@ function ConversacionesPage() {
                         </span>
                       )}
                     </div>
+                    {t.telefono && t.nombre !== t.telefono && (
+                      <p className="text-[10px] text-muted-foreground/70 mt-0.5 truncate">
+                        {t.telefono}
+                      </p>
+                    )}
                   </button>
                 );
               })
@@ -214,7 +244,9 @@ function ConversacionesPage() {
               <div className="p-4 border-b border-border bg-card">
                 <div className="font-semibold">{selected.nombre}</div>
                 {selected.telefono && (
-                  <div className="text-xs text-muted-foreground">{selected.telefono}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {selected.telefono}
+                  </div>
                 )}
               </div>
               <div className="flex-1 overflow-y-auto p-6 space-y-4">
