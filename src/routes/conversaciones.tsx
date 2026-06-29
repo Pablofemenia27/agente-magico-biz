@@ -111,7 +111,10 @@ function ConversacionesPage() {
   nombre = key;
   telefono = key;
 } else {
-  nombre = arr[0]?.cliente || key;
+  const clienteVal = arr[0]?.cliente || "";
+  nombre = (clienteVal && clienteVal !== "==" && clienteVal !== "—") 
+    ? clienteVal 
+    : key;
   telefono = key;
 }
       list.push({
