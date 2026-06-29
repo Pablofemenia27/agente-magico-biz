@@ -1,18 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Package, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Package, Pencil, Plus, Search, Trash2, Upload, Download } from "lucide-react";
 
 export const Route = createFileRoute("/productos")({
   head: () => ({ meta: [{ title: "Productos — AgentPanel" }] }),
@@ -20,6 +21,33 @@ export const Route = createFileRoute("/productos")({
 });
 
 type Producto = { id: string; nombre: string; precio: number; stock: number; activo: boolean };
+
+function parseBool(v: unknown): boolean {
+  if (typeof v === "boolean") return v;
+  if (typeof v === "number") return v !== 0;
+  if (v == null) return true;
+  const s = String(v).trim().toLowerCase();
+  return ["si", "sí", "true", "1", "x", "yes", "y", "activo"].includes(s);
+}
+
+function parseNum(v: unknown): number {
+  if (typeof v === "number") return isFinite(v) ? v : 0;
+  if (v == null) return 0;
+  const s = String(v).replace(/[^\d.,-]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".");
+  const n = Number(s);
+  return isFinite(n) ? n : 0;
+}
+
+function pick(row: Record<string, unknown>, keys: string[]): unknown {
+  const norm = (k: string) => k.toLowerCase().trim().replace(/\s+/g, "_");
+  const map: Record<string, unknown> = {};
+  for (const k of Object.keys(row)) map[norm(k)] = row[k];
+  for (const k of keys) {
+    const v = map[norm(k)];
+    if (v !== undefined && v !== "") return v;
+  }
+  return undefined;
+}
 
 function ProductosPage() {
   const [items, setItems] = useState<Producto[]>([]);
