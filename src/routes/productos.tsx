@@ -203,7 +203,22 @@ function ProductosPage() {
             className="pl-9"
           />
         </div>
-        <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" />Agregar producto</Button>
+        <div className="flex flex-wrap gap-2">
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            className="hidden"
+            onChange={handleImportFile}
+          />
+          <Button variant="outline" onClick={downloadTemplate} title="Descargar plantilla Excel">
+            <Download className="h-4 w-4 mr-2" />Plantilla
+          </Button>
+          <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={importing}>
+            <Upload className="h-4 w-4 mr-2" />{importing ? "Importando..." : "Importar Excel"}
+          </Button>
+          <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" />Agregar producto</Button>
+        </div>
       </div>
 
       <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
