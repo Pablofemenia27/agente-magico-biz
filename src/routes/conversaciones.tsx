@@ -94,7 +94,10 @@ function ConversacionesPage() {
         (a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
       );
       const last = sorted[sorted.length - 1];
-      const nombreLookup = nombreByTelefono.get(key);
+      const rawNombre = nombreByTelefono.get(key);
+const nombreLookup = (rawNombre && rawNombre !== '==' && rawNombre !== '—' && rawNombre.trim() !== '') 
+  ? rawNombre 
+  : undefined;
       const isWeb = key.startsWith("web-");
       const isPhone = /^[+\d\s()-]{6,}$/.test(key);
 
