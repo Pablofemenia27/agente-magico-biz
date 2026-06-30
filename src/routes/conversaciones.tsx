@@ -16,7 +16,7 @@ type Conv = {
   id: string;
   fecha: string;
   cliente: string;
-  telefono: string;
+  telefono?: string;
   mensaje: string;
   respuesta: string;
   estado: Estado;
