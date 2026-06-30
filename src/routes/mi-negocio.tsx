@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Building2 } from "lucide-react";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/mi-negocio")({
   head: () => ({ meta: [{ title: "Mi Negocio — AgentPanel" }] }),
   component: MiNegocioPage,
 });
