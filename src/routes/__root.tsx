@@ -7,7 +7,7 @@ import {
   useRouterState,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { Building2, Package, Users, MessageSquare, Bot } from "lucide-react";
+import { Building2, Package, Users, MessageSquare, Bot, LayoutDashboard } from "lucide-react";
 
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
