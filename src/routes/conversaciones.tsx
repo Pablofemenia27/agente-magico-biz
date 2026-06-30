@@ -64,7 +64,7 @@ function ConversacionesPage() {
       const [convRes, cliRes] = await Promise.all([
         supabase
           .from("conversaciones")
-          .select("id, fecha, cliente, mensaje, respuesta, estado, telefono")
+          .select("id, fecha, cliente, mensaje, respuesta, estado")
           .order("fecha", { ascending: false }),
         supabase.from("clientes").select("telefono,nombre"),
       ]);
