@@ -16,7 +16,7 @@ type Conv = {
   id: string;
   fecha: string;
   cliente: string;
-  telefono: string;
+  telefono?: string;
   mensaje: string;
   respuesta: string;
   estado: Estado;
@@ -64,7 +64,7 @@ function ConversacionesPage() {
       const [convRes, cliRes] = await Promise.all([
         supabase
           .from("conversaciones")
-          .select("id, fecha, cliente, mensaje, respuesta, estado, telefono")
+          .select("id, fecha, cliente, mensaje, respuesta, estado")
           .order("fecha", { ascending: false }),
         supabase.from("clientes").select("telefono,nombre"),
       ]);

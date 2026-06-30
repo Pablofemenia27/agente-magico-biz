@@ -7,7 +7,7 @@ import {
   useRouterState,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { Building2, Package, Users, MessageSquare, Bot } from "lucide-react";
+import { Building2, Package, Users, MessageSquare, Bot, LayoutDashboard } from "lucide-react";
 
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
@@ -54,7 +54,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 const navItems = [
-  { to: "/", label: "Mi Negocio", icon: Building2 },
+  { to: "/", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/mi-negocio", label: "Mi Negocio", icon: Building2 },
   { to: "/productos", label: "Productos", icon: Package },
   { to: "/clientes", label: "Clientes", icon: Users },
   { to: "/conversaciones", label: "Conversaciones", icon: MessageSquare },

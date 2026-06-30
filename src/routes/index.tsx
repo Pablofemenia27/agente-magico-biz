@@ -1,119 +1,245 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import { Building2 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MessageSquare, CheckCircle2, AlertTriangle, Clock, BarChart3, Flame } from "lucide-react";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
 
 export const Route = createFileRoute("/")({
-  head: () => ({ meta: [{ title: "Mi Negocio — AgentPanel" }] }),
-  component: MiNegocioPage,
+  head: () => ({ meta: [{ title: "Dashboard — AgentPanel" }] }),
+  component: DashboardPage,
 });
 
-type Business = {
+type Conversacion = {
   id: string;
-  nombre: string;
-  horario: string;
-  minimo_compra: string;
-  formas_pago: string;
-  zona_entrega: string;
-  telefono: string;
+  cliente: string;
+  mensaje: string;
+  respuesta: string;
+  estado: string;
+  fecha: string;
 };
 
-function MiNegocioPage() {
-  const [data, setData] = useState<Business | null>(null);
+type Cliente = { telefono: string; nombre: string };
+
+function DashboardPage() {
+  const [convs, setConvs] = useState<Conversacion[]>([]);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    supabase
-      .from("business_info")
-      .select("*")
-      .limit(1)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (error) toast.error("Error al cargar: " + error.message);
-        else setData(data as Business);
-        setLoading(false);
-      });
+    (async () => {
+      const [{ data: c }, { data: cl }] = await Promise.all([
+        supabase.from("conversaciones").select("*").order("fecha", { ascending: false }),
+        supabase.from("clientes").select("telefono,nombre"),
+      ]);
+      setConvs((c as Conversacion[]) ?? []);
+      setClientes((cl as Cliente[]) ?? []);
+      setLoading(false);
+    })();
   }, []);
 
-  const handleSave = async () => {
-    if (!data) return;
-    setSaving(true);
-    const { error } = await supabase
-      .from("business_info")
-      .update({
-        nombre: data.nombre,
-        horario: data.horario,
-        minimo_compra: data.minimo_compra,
-        formas_pago: data.formas_pago,
-        zona_entrega: data.zona_entrega,
-        telefono: data.telefono,
-      })
-      .eq("id", data.id);
-    setSaving(false);
-    if (error) toast.error("Error al guardar: " + error.message);
-    else toast.success("Cambios guardados");
-  };
+  const stats = useMemo(() => {
+    const total = convs.length;
+    const respondidos = convs.filter((c) => c.estado === "respondido").length;
+    const escalados = convs.filter((c) => c.estado === "escalado").length;
+    const horasAhorradas = (respondidos * 2.5) / 60;
+    const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
+    return {
+      total,
+      respondidos,
+      escalados,
+      horasAhorradas,
+      pctResp: pct(respondidos),
+      pctEsc: pct(escalados),
+    };
+  }, [convs]);
 
-  const update = (k: keyof Business, v: string) => setData((d) => (d ? { ...d, [k]: v } : d));
+  const chartData = useMemo(() => {
+    const days: { key: string; label: string; count: number }[] = [];
+    const now = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      const label = d.toLocaleDateString("es-AR", { weekday: "short", day: "2-digit" });
+      days.push({ key, label, count: 0 });
+    }
+    const map = new Map(days.map((d) => [d.key, d]));
+    for (const c of convs) {
+      const key = new Date(c.fecha).toISOString().slice(0, 10);
+      const e = map.get(key);
+      if (e) e.count++;
+    }
+    return days;
+  }, [convs]);
+
+  const nombrePorTel = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const cl of clientes) m.set(cl.telefono, cl.nombre);
+    return m;
+  }, [clientes]);
+
+  const ultimosEscalados = useMemo(
+    () => convs.filter((c) => c.estado === "escalado").slice(0, 5),
+    [convs],
+  );
 
   return (
-    <div className="p-6 md:p-10 max-w-3xl">
-      <header className="mb-8 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
-          <Building2 className="h-5 w-5" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Mi Negocio</h1>
-          <p className="text-sm text-muted-foreground">Información que tu agente usará al responder.</p>
-        </div>
+    <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
+      <header>
+        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Dashboard</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Resumen de actividad del agente de WhatsApp
+        </p>
       </header>
 
-      {loading || !data ? (
-        <div className="text-muted-foreground">Cargando...</div>
-      ) : (
-        <div className="bg-card border border-border rounded-xl p-6 md:p-8 space-y-5 shadow-sm">
-          <div className="grid md:grid-cols-2 gap-5">
-            <Field label="Nombre del negocio">
-              <Input value={data.nombre} onChange={(e) => update("nombre", e.target.value)} placeholder="Ej: Pizzería Don Carlos" />
-            </Field>
-            <Field label="Teléfono del dueño">
-              <Input value={data.telefono} onChange={(e) => update("telefono", e.target.value)} placeholder="+54 9 11 ..." />
-            </Field>
-            <Field label="Horario de atención">
-              <Input value={data.horario} onChange={(e) => update("horario", e.target.value)} placeholder="Lun a Vie 9 a 18hs" />
-            </Field>
-            <Field label="Mínimo de compra">
-              <Input value={data.minimo_compra} onChange={(e) => update("minimo_compra", e.target.value)} placeholder="$ 5.000" />
-            </Field>
-          </div>
-          <Field label="Formas de pago">
-            <Textarea rows={2} value={data.formas_pago} onChange={(e) => update("formas_pago", e.target.value)} placeholder="Efectivo, transferencia, MercadoPago..." />
-          </Field>
-          <Field label="Zona de entrega">
-            <Textarea rows={2} value={data.zona_entrega} onChange={(e) => update("zona_entrega", e.target.value)} placeholder="CABA y GBA Norte" />
-          </Field>
-          <div className="flex justify-end pt-2">
-            <Button onClick={handleSave} disabled={saving} size="lg">
-              {saving ? "Guardando..." : "Guardar cambios"}
-            </Button>
-          </div>
-        </div>
-      )}
+      <section className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        <MetricCard
+          title="Mensajes procesados"
+          value={loading ? "—" : stats.total.toLocaleString("es-AR")}
+          icon={<MessageSquare className="h-5 w-5" />}
+          accent="text-primary"
+          subtitle="total histórico"
+        />
+        <MetricCard
+          title="Resueltos automáticamente"
+          value={loading ? "—" : stats.respondidos.toLocaleString("es-AR")}
+          icon={<CheckCircle2 className="h-5 w-5" />}
+          accent="text-success"
+          subtitle={loading ? "" : `${stats.pctResp}% del total`}
+        />
+        <MetricCard
+          title="Escalados"
+          value={loading ? "—" : stats.escalados.toLocaleString("es-AR")}
+          icon={<AlertTriangle className="h-5 w-5" />}
+          accent="text-warning"
+          subtitle={loading ? "" : `${stats.pctEsc}% del total`}
+        />
+        <MetricCard
+          title="Tiempo ahorrado"
+          value={loading ? "—" : `${stats.horasAhorradas.toFixed(1)} h`}
+          icon={<Clock className="h-5 w-5" />}
+          accent="text-primary"
+          subtitle="estimado a 2.5 min por mensaje"
+        />
+      </section>
+
+      <section className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <BarChart3 className="h-4 w-4 text-primary" />
+              Mensajes por día (últimos 7)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
+                    axisLine={{ stroke: "var(--border)" }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
+                    axisLine={{ stroke: "var(--border)" }}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    cursor={{ fill: "var(--accent)", opacity: 0.3 }}
+                    contentStyle={{
+                      background: "var(--popover)",
+                      border: "1px solid var(--border)",
+                      borderRadius: 8,
+                      color: "var(--popover-foreground)",
+                      fontSize: 12,
+                    }}
+                  />
+                  <Bar dataKey="count" fill="var(--primary)" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Flame className="h-4 w-4 text-warning" />
+              Últimos escalados
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {ultimosEscalados.length === 0 ? (
+              <div className="text-sm text-muted-foreground py-8 text-center">
+                {loading ? "Cargando…" : "Sin mensajes escalados"}
+              </div>
+            ) : (
+              <ul className="divide-y divide-border">
+                {ultimosEscalados.map((c) => {
+                  const nombre = nombrePorTel.get(c.cliente) || c.cliente;
+                  return (
+                    <li key={c.id} className="py-3 flex flex-col gap-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium text-sm truncate">{nombre}</span>
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {new Date(c.fecha).toLocaleString("es-AR", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground line-clamp-2">{c.mensaje}</p>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </section>
     </div>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function MetricCard({
+  title,
+  value,
+  subtitle,
+  icon,
+  accent,
+}: {
+  title: string;
+  value: string;
+  subtitle?: string;
+  icon: React.ReactNode;
+  accent?: string;
+}) {
   return (
-    <div className="space-y-2">
-      <Label className="text-sm font-medium text-foreground">{label}</Label>
-      {children}
-    </div>
+    <Card>
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between">
+          <div className="text-sm text-muted-foreground">{title}</div>
+          <div className={`rounded-md bg-accent/50 p-2 ${accent ?? ""}`}>{icon}</div>
+        </div>
+        <div className="mt-3 text-2xl font-semibold tracking-tight">{value}</div>
+        {subtitle && <div className="mt-1 text-xs text-muted-foreground">{subtitle}</div>}
+      </CardContent>
+    </Card>
   );
 }
