@@ -54,7 +54,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 const navItems = [
-  { to: "/", label: "Mi Negocio", icon: Building2 },
+  { to: "/", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/mi-negocio", label: "Mi Negocio", icon: Building2 },
   { to: "/productos", label: "Productos", icon: Package },
   { to: "/clientes", label: "Clientes", icon: Users },
   { to: "/conversaciones", label: "Conversaciones", icon: MessageSquare },
