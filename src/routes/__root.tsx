@@ -5,12 +5,14 @@ import {
   createRootRouteWithContext,
   useRouter,
   useRouterState,
+  useNavigate,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { Building2, Package, Users, MessageSquare, Bot, LayoutDashboard } from "lucide-react";
+import { Building2, Package, Users, MessageSquare, Bot, LayoutDashboard, LogOut, Loader2 } from "lucide-react";
 
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import { useAuth } from "@/lib/auth";
 
 function NotFoundComponent() {
   return (
@@ -54,7 +56,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 const navItems = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/mi-negocio", label: "Mi Negocio", icon: Building2 },
   { to: "/productos", label: "Productos", icon: Package },
   { to: "/clientes", label: "Clientes", icon: Users },
@@ -63,6 +65,12 @@ const navItems = [
 
 function Sidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const handleLogout = async () => {
+    await signOut();
+    navigate({ to: "/", replace: true });
+  };
   return (
     <aside className="hidden md:flex w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
       <div className="flex items-center gap-2 px-6 py-6 border-b border-sidebar-border">
@@ -94,8 +102,19 @@ function Sidebar() {
           );
         })}
       </nav>
-      <div className="px-6 py-4 border-t border-sidebar-border text-xs text-muted-foreground">
-        v1.0 · PyME
+      <div className="px-3 py-3 border-t border-sidebar-border space-y-2">
+        {user?.email && (
+          <div className="px-3 text-xs text-muted-foreground truncate" title={user.email}>
+            {user.email}
+          </div>
+        )}
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+        >
+          <LogOut className="h-4 w-4" />
+          Cerrar sesión
+        </button>
       </div>
     </aside>
   );
@@ -103,6 +122,12 @@ function Sidebar() {
 
 function MobileNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+  const handleLogout = async () => {
+    await signOut();
+    navigate({ to: "/", replace: true });
+  };
   return (
     <nav className="md:hidden flex overflow-x-auto bg-sidebar border-b border-sidebar-border">
       {navItems.map((item) => {
@@ -121,23 +146,69 @@ function MobileNav() {
           </Link>
         );
       })}
+      <button
+        onClick={handleLogout}
+        className="ml-auto flex items-center gap-2 px-4 py-3 text-sm whitespace-nowrap text-muted-foreground"
+      >
+        <LogOut className="h-4 w-4" />
+        Salir
+      </button>
     </nav>
   );
 }
 
+const PUBLIC_PATHS = new Set<string>(["/"]);
+
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const { session, loading } = useAuth();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
+  const isPublic = PUBLIC_PATHS.has(pathname);
+
+  useEffect(() => {
+    if (loading) return;
+    if (!session && !isPublic) {
+      navigate({ to: "/", replace: true });
+    }
+  }, [loading, session, isPublic, navigate]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (isPublic) return <>{children}</>;
+
+  if (!session) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-screen bg-background text-foreground">
+      <Sidebar />
+      <div className="flex-1 flex flex-col min-w-0">
+        <MobileNav />
+        <main className="flex-1 overflow-auto">{children}</main>
+      </div>
+    </div>
+  );
+}
+
+const queryClient = new QueryClient();
+
 function RootComponent() {
-  const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="flex min-h-screen bg-background text-foreground">
-        <Sidebar />
-        <div className="flex-1 flex flex-col min-w-0">
-          <MobileNav />
-          <main className="flex-1 overflow-auto">
-            <Outlet />
-          </main>
-        </div>
-      </div>
+      <AuthGate>
+        <Outlet />
+      </AuthGate>
       <Toaster />
     </QueryClientProvider>
   );
