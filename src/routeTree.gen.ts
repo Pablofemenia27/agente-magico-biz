@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProductosRouteImport } from './routes/productos'
 import { Route as MiNegocioRouteImport } from './routes/mi-negocio'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ConversacionesRouteImport } from './routes/conversaciones'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as IndexRouteImport } from './routes/index'
@@ -23,6 +24,11 @@ const ProductosRoute = ProductosRouteImport.update({
 const MiNegocioRoute = MiNegocioRouteImport.update({
   id: '/mi-negocio',
   path: '/mi-negocio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConversacionesRoute = ConversacionesRouteImport.update({
@@ -45,6 +51,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/clientes': typeof ClientesRoute
   '/conversaciones': typeof ConversacionesRoute
+  '/dashboard': typeof DashboardRoute
   '/mi-negocio': typeof MiNegocioRoute
   '/productos': typeof ProductosRoute
 }
@@ -52,6 +59,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/clientes': typeof ClientesRoute
   '/conversaciones': typeof ConversacionesRoute
+  '/dashboard': typeof DashboardRoute
   '/mi-negocio': typeof MiNegocioRoute
   '/productos': typeof ProductosRoute
 }
@@ -60,6 +68,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/clientes': typeof ClientesRoute
   '/conversaciones': typeof ConversacionesRoute
+  '/dashboard': typeof DashboardRoute
   '/mi-negocio': typeof MiNegocioRoute
   '/productos': typeof ProductosRoute
 }
@@ -69,15 +78,23 @@ export interface FileRouteTypes {
     | '/'
     | '/clientes'
     | '/conversaciones'
+    | '/dashboard'
     | '/mi-negocio'
     | '/productos'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/clientes' | '/conversaciones' | '/mi-negocio' | '/productos'
+  to:
+    | '/'
+    | '/clientes'
+    | '/conversaciones'
+    | '/dashboard'
+    | '/mi-negocio'
+    | '/productos'
   id:
     | '__root__'
     | '/'
     | '/clientes'
     | '/conversaciones'
+    | '/dashboard'
     | '/mi-negocio'
     | '/productos'
   fileRoutesById: FileRoutesById
@@ -86,6 +103,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ClientesRoute: typeof ClientesRoute
   ConversacionesRoute: typeof ConversacionesRoute
+  DashboardRoute: typeof DashboardRoute
   MiNegocioRoute: typeof MiNegocioRoute
   ProductosRoute: typeof ProductosRoute
 }
@@ -104,6 +122,13 @@ declare module '@tanstack/react-router' {
       path: '/mi-negocio'
       fullPath: '/mi-negocio'
       preLoaderRoute: typeof MiNegocioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/conversaciones': {
@@ -134,6 +159,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ClientesRoute: ClientesRoute,
   ConversacionesRoute: ConversacionesRoute,
+  DashboardRoute: DashboardRoute,
   MiNegocioRoute: MiNegocioRoute,
   ProductosRoute: ProductosRoute,
 }
