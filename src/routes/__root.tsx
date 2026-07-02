@@ -8,7 +8,8 @@ import {
   useNavigate,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { Building2, Package, Users, MessageSquare, Bot, LayoutDashboard, LogOut, Loader2 } from "lucide-react";
+import { Building2, Package, Users, MessageSquare, Bot, LayoutDashboard, LogOut, Loader2, Shield } from "lucide-react";
+import { ADMIN_EMAIL } from "./admin";
 
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
@@ -55,13 +56,24 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
-const navItems = [
+const baseNavItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/mi-negocio", label: "Mi Negocio", icon: Building2 },
   { to: "/productos", label: "Productos", icon: Package },
   { to: "/clientes", label: "Clientes", icon: Users },
   { to: "/conversaciones", label: "Conversaciones", icon: MessageSquare },
 ] as const;
+
+type NavItem = { to: string; label: string; icon: typeof LayoutDashboard };
+
+function useNavItems(): NavItem[] {
+  const { user } = useAuth();
+  const items: NavItem[] = [...baseNavItems];
+  if (user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+    items.push({ to: "/admin", label: "Admin", icon: Shield });
+  }
+  return items;
+}
 
 function Sidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
