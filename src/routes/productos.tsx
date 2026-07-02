@@ -171,7 +171,8 @@ function ProductosPage() {
         return obj;
       });
 
-      const { data: existing, error: exErr } = await supabase.from("productos").select("id,nombre");
+      if (!clienteId) throw new Error("Sin negocio asociado. Iniciá sesión nuevamente.");
+      const { data: existing, error: exErr } = await supabase.from("productos").select("id,nombre").eq("cliente_id" as never, clienteId);
       if (exErr) throw new Error(exErr.message);
       const byName = new Map<string, string>();
       (existing ?? []).forEach((p: { id: string; nombre: string }) =>
@@ -198,11 +199,12 @@ function ProductosPage() {
           if (error) errors.push(`Fila ${i + 2} (${nombre}): ${error.message}`);
           else updated++;
         } else {
-          const { data: ins, error } = await supabase.from("productos").insert(payload).select("id").single();
+          const { data: ins, error } = await supabase.from("productos").insert({ ...payload, cliente_id: clienteId } as never).select("id").single();
           if (error) errors.push(`Fila ${i + 2} (${nombre}): ${error.message}`);
           else { created++; if (ins) byName.set(nombre.toLowerCase(), ins.id); }
         }
       }
+
 
       setImportResult({ created, updated, skipped, errors });
       toast.success(`Importación: ${created} creados, ${updated} actualizados${skipped ? `, ${skipped} omitidos` : ""}`);
