@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MessageSquare, CheckCircle2, AlertTriangle, Clock, BarChart3, Flame } from "lucide-react";
@@ -30,21 +31,28 @@ type Conversacion = {
 type Cliente = { telefono: string; nombre: string };
 
 function DashboardPage() {
+  const { clienteId } = useAuth();
   const [convs, setConvs] = useState<Conversacion[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!clienteId) return;
+    setLoading(true);
     (async () => {
       const [{ data: c }, { data: cl }] = await Promise.all([
-        supabase.from("conversaciones").select("*").order("fecha", { ascending: false }),
-        supabase.from("clientes").select("telefono,nombre"),
+        supabase.from("conversaciones").select("*").eq("cliente_id", clienteId).order("fecha", { ascending: false }),
+        supabase.from("clientes").select("telefono,nombre").eq("cliente_id", clienteId),
       ]);
       setConvs((c as Conversacion[]) ?? []);
       setClientes((cl as Cliente[]) ?? []);
       setLoading(false);
     })();
-  }, []);
+  }, [clienteId]);
+
+  if (!clienteId) {
+    return <div className="p-10 text-sm text-muted-foreground">Cargando datos del negocio…</div>;
+  }
 
   const stats = useMemo(() => {
     const total = convs.length;

@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,14 +25,18 @@ type Business = {
 };
 
 function MiNegocioPage() {
+  const { clienteId } = useAuth();
   const [data, setData] = useState<Business | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    if (!clienteId) return;
+    setLoading(true);
     supabase
       .from("business_info")
       .select("*")
+      .eq("cliente_id", clienteId)
       .limit(1)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -39,7 +44,7 @@ function MiNegocioPage() {
         else setData(data as Business);
         setLoading(false);
       });
-  }, []);
+  }, [clienteId]);
 
   const handleSave = async () => {
     if (!data) return;
