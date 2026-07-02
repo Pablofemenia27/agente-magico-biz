@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
 import { MessageSquare, Search, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
@@ -53,6 +54,7 @@ function formatFull(iso: string) {
 }
 
 function ConversacionesPage() {
+  const { clienteId } = useAuth();
   const [items, setItems] = useState<Conv[]>([]);
   const [clientes, setClientes] = useState<ClienteRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,20 +62,23 @@ function ConversacionesPage() {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!clienteId) return;
+    setLoading(true);
     (async () => {
       const [convRes, cliRes] = await Promise.all([
         supabase
           .from("conversaciones")
           .select("id, fecha, cliente, mensaje, respuesta, estado")
+          .eq("cliente_id" as never, clienteId)
           .order("fecha", { ascending: false }),
-        supabase.from("clientes").select("telefono,nombre"),
+        supabase.from("clientes").select("telefono,nombre").eq("cliente_id" as never, clienteId),
       ]);
       if (convRes.error) toast.error(convRes.error.message);
       else setItems((convRes.data as Conv[]) ?? []);
       if (!cliRes.error) setClientes((cliRes.data as ClienteRow[]) ?? []);
       setLoading(false);
     })();
-  }, []);
+  }, [clienteId]);
 
   const nombreByTelefono = useMemo(() => {
     const m = new Map<string, string>();
