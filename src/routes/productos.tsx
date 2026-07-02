@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,6 +61,7 @@ function pick(row: Record<string, unknown>, keys: string[]): unknown {
 }
 
 function ProductosPage() {
+  const { clienteId } = useAuth();
   const [items, setItems] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -71,14 +73,15 @@ function ProductosPage() {
   const [importResult, setImportResult] = useState<{ created: number; updated: number; skipped: number; errors: string[] } | null>(null);
 
   const load = async () => {
+    if (!clienteId) return;
     setLoading(true);
-    const { data, error } = await supabase.from("productos").select("*").order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("productos").select("*").eq("cliente_id" as never, clienteId).order("created_at", { ascending: false });
     if (error) toast.error(error.message);
     else setItems((data as Producto[]) ?? []);
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [clienteId]);
 
   const filtered = useMemo(
     () => items.filter((p) => p.nombre.toLowerCase().includes(search.toLowerCase())),
@@ -98,12 +101,13 @@ function ProductosPage() {
 
   const save = async () => {
     if (!form.nombre.trim()) { toast.error("El nombre es obligatorio"); return; }
+    if (!clienteId) { toast.error("Sin negocio asociado"); return; }
     if (editing) {
       const { error } = await supabase.from("productos").update(form).eq("id", editing.id);
       if (error) return toast.error(error.message);
       toast.success("Producto actualizado");
     } else {
-      const { error } = await supabase.from("productos").insert(form);
+      const { error } = await supabase.from("productos").insert({ ...form, cliente_id: clienteId } as never);
       if (error) return toast.error(error.message);
       toast.success("Producto agregado");
     }
