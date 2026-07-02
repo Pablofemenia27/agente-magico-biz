@@ -79,6 +79,7 @@ function Sidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const navItems = useNavItems();
   const handleLogout = async () => {
     await signOut();
     navigate({ to: "/", replace: true });
@@ -136,6 +137,7 @@ function MobileNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { signOut } = useAuth();
   const navigate = useNavigate();
+  const navItems = useNavItems();
   const handleLogout = async () => {
     await signOut();
     navigate({ to: "/", replace: true });
