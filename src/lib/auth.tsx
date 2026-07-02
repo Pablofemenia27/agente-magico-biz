@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 type AuthCtx = {
   session: Session | null;
   user: User | null;
+  clienteId: string | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
@@ -12,32 +13,72 @@ type AuthCtx = {
 
 const Ctx = createContext<AuthCtx | null>(null);
 
+async function fetchClienteId(userId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("user_negocios" as never)
+    .select("cliente_id")
+    .eq("user_id", userId)
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    console.error("Error fetching cliente_id", error);
+    return null;
+  }
+  return (data as { cliente_id: string } | null)?.cliente_id ?? null;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
+  const [clienteId, setClienteId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+    let mounted = true;
+
+    const applySession = async (s: Session | null) => {
+      if (!mounted) return;
       setSession(s);
+      if (s?.user?.id) {
+        const cid = await fetchClienteId(s.user.id);
+        if (mounted) setClienteId(cid);
+      } else {
+        setClienteId(null);
+      }
+    };
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+      // defer supabase calls out of the callback
+      setTimeout(() => applySession(s), 0);
     });
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
+
+    supabase.auth.getSession().then(async ({ data }) => {
+      await applySession(data.session);
+      if (mounted) setLoading(false);
     });
-    return () => sub.subscription.unsubscribe();
+
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   const signIn: AuthCtx["signIn"] = async (email, password) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { error: error.message };
+    if (data.user?.id) {
+      const cid = await fetchClienteId(data.user.id);
+      setClienteId(cid);
+    }
+    return { error: null };
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    setClienteId(null);
   };
 
   return (
-    <Ctx.Provider value={{ session, user: session?.user ?? null, loading, signIn, signOut }}>
+    <Ctx.Provider value={{ session, user: session?.user ?? null, clienteId, loading, signIn, signOut }}>
       {children}
     </Ctx.Provider>
   );

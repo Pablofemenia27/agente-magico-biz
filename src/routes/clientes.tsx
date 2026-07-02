@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,6 +37,7 @@ const condStyle: Record<Condicion, string> = {
 };
 
 function ClientesPage() {
+  const { clienteId } = useAuth();
   const [items, setItems] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -43,25 +45,27 @@ function ClientesPage() {
   const [form, setForm] = useState<Omit<Cliente, "id">>({ telefono: "", nombre: "", condicion: "nuevo" });
 
   const load = async () => {
+    if (!clienteId) return;
     setLoading(true);
-    const { data, error } = await supabase.from("clientes").select("*").order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("clientes").select("*").eq("cliente_id" as never, clienteId).order("created_at", { ascending: false });
     if (error) toast.error(error.message);
     else setItems((data as Cliente[]) ?? []);
     setLoading(false);
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [clienteId]);
 
   const openNew = () => { setEditing(null); setForm({ telefono: "", nombre: "", condicion: "nuevo" }); setOpen(true); };
   const openEdit = (c: Cliente) => { setEditing(c); setForm({ telefono: c.telefono, nombre: c.nombre, condicion: c.condicion }); setOpen(true); };
 
   const save = async () => {
     if (!form.nombre.trim() || !form.telefono.trim()) { toast.error("Nombre y teléfono son obligatorios"); return; }
+    if (!clienteId) { toast.error("Sin negocio asociado"); return; }
     if (editing) {
       const { error } = await supabase.from("clientes").update(form).eq("id", editing.id);
       if (error) return toast.error(error.message);
       toast.success("Cliente actualizado");
     } else {
-      const { error } = await supabase.from("clientes").insert(form);
+      const { error } = await supabase.from("clientes").insert({ ...form, cliente_id: clienteId } as never);
       if (error) return toast.error(error.message);
       toast.success("Cliente agregado");
     }
