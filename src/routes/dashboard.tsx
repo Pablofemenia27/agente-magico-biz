@@ -41,8 +41,8 @@ function DashboardPage() {
     setLoading(true);
     (async () => {
       const [{ data: c }, { data: cl }] = await Promise.all([
-        supabase.from("conversaciones").select("*").eq("cliente_id", clienteId).order("fecha", { ascending: false }),
-        supabase.from("clientes").select("telefono,nombre").eq("cliente_id", clienteId),
+        supabase.from("conversaciones").select("*").eq("cliente_id" as never, clienteId).order("fecha", { ascending: false }),
+        supabase.from("clientes").select("telefono,nombre").eq("cliente_id" as never, clienteId),
       ]);
       setConvs((c as Conversacion[]) ?? []);
       setClientes((cl as Cliente[]) ?? []);

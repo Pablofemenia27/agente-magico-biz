@@ -36,7 +36,7 @@ function MiNegocioPage() {
     supabase
       .from("business_info")
       .select("*")
-      .eq("cliente_id", clienteId)
+      .eq("cliente_id" as never, clienteId)
       .limit(1)
       .maybeSingle()
       .then(({ data, error }) => {
