@@ -50,10 +50,6 @@ function DashboardPage() {
     })();
   }, [clienteId]);
 
-  if (!clienteId) {
-    return <div className="p-10 text-sm text-muted-foreground">Cargando datos del negocio…</div>;
-  }
-
   const stats = useMemo(() => {
     const total = convs.length;
     const respondidos = convs.filter((c) => c.estado === "respondido").length;
@@ -100,6 +96,10 @@ function DashboardPage() {
     () => convs.filter((c) => c.estado === "escalado").slice(0, 5),
     [convs],
   );
+
+  if (!clienteId) {
+    return <div className="p-10 text-sm text-muted-foreground">Cargando datos del negocio…</div>;
+  }
 
   return (
     <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
