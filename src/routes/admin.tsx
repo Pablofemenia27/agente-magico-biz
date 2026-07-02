@@ -1,6 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { createClient } from "@supabase/supabase-js";
 import { Eye, EyeOff, Loader2, ShieldAlert } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -66,15 +65,6 @@ function estadoBadge(estado: string | null) {
   return <Badge className="bg-muted text-muted-foreground hover:bg-muted">{estado || "inactivo"}</Badge>;
 }
 
-// Ephemeral supabase client for creating auth users WITHOUT hijacking the admin session.
-function makeAdminAuthClient() {
-  const url = import.meta.env.VITE_SUPABASE_URL as string;
-  const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
-  return createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false, storageKey: "sb-admin-signup" },
-  });
-}
-
 function AdminPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -97,7 +87,10 @@ function AdminPage() {
   const [negocios, setNegocios] = useState<Negocio[] | null>(null);
   const [listError, setListError] = useState<string | null>(null);
 
-  const computedSlug = useMemo(() => (slugTouched ? slug : slugify(nombre)), [nombre, slug, slugTouched]);
+  const computedSlug = useMemo(
+    () => (slugTouched ? slug : slugify(nombre)),
+    [nombre, slug, slugTouched]
+  );
 
   const loadNegocios = async () => {
     setListError(null);
@@ -126,52 +119,26 @@ function AdminPage() {
     }
     setSubmitting(true);
     try {
-      // 1) INSERT negocio
-      const { data: negocio, error: negErr } = await supabase
-        .from("negocios" as never)
-        .insert({
-          nombre: nombre.trim(),
-          slug: computedSlug,
-          email_contacto: email.trim(),
-          estado: "piloto",
-        } as never)
-        .select("id")
-        .single();
-      if (negErr || !negocio) throw new Error(negErr?.message || "No se pudo crear el negocio");
-      const clienteId = (negocio as { id: string }).id;
-
-      // 2) Auth signUp (usa cliente aislado para no pisar la sesión del admin)
-      const adminClient = makeAdminAuthClient();
-      const { data: signUpData, error: signErr } = await adminClient.auth.signUp({
-        email: email.trim(),
-        password,
-      });
-      if (signErr || !signUpData.user) {
-        // rollback negocio si falla el auth
-        await supabase.from("negocios" as never).delete().eq("id", clienteId);
-        throw new Error(signErr?.message || "No se pudo crear el usuario");
-      }
-      const newUserId = signUpData.user.id;
-
-      // 3) user_negocios
-      const { error: unErr } = await supabase.from("user_negocios" as never).insert({
-        user_id: newUserId,
-        cliente_id: clienteId,
-        rol: "owner",
-      } as never);
-      if (unErr) throw new Error(unErr.message);
-
-      // 4) business_info
-      const { error: biErr } = await supabase.from("business_info" as never).insert({
-        cliente_id: clienteId,
-        nombre: nombre.trim(),
-        horario: "",
-        minimo_compra: "",
-        formas_pago: "",
-        zona_entrega: "",
-        telefono: "",
-      } as never);
-      if (biErr) throw new Error(biErr.message);
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/crear-cliente`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            nombre: nombre.trim(),
+            slug: computedSlug,
+            email: email.trim(),
+            password,
+          }),
+        }
+      );
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Error al crear cliente');
 
       setLastCreated({ email: email.trim(), password });
       toast.success("Cliente creado correctamente");
@@ -237,7 +204,6 @@ function AdminPage() {
         <p className="text-sm text-muted-foreground mt-1">Gestión de clientes y negocios</p>
       </header>
 
-      {/* Sección 1: Crear cliente */}
       <section className="rounded-xl border bg-card p-6 shadow-sm">
         <h2 className="text-lg font-semibold mb-4">Crear nuevo cliente</h2>
         <form onSubmit={onCreate} className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -318,7 +284,6 @@ function AdminPage() {
         )}
       </section>
 
-      {/* Sección 2: Lista de clientes */}
       <section className="rounded-xl border bg-card shadow-sm">
         <div className="p-6 pb-3">
           <h2 className="text-lg font-semibold">Clientes</h2>
