@@ -13,15 +13,30 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
-import { Package, Pencil, Plus, Search, Trash2, Upload, Download } from "lucide-react";
+import { Check, Package, Pencil, Plus, Search, Trash2, Upload, Download, X } from "lucide-react";
 
 export const Route = createFileRoute("/productos")({
   head: () => ({ meta: [{ title: "Productos — AgentPanel" }] }),
   component: ProductosPage,
 });
 
-type Producto = { id: string; nombre: string; precio: number; stock: number; activo: boolean };
+type Producto = {
+  id: string;
+  nombre: string;
+  precio: number;
+  stock: number;
+  activo: boolean;
+  marca_detectada: string | null;
+  formato_detectado: string | null;
+  variante_detectada: string | null;
+  unidad_venta: string | null;
+};
+
+type EditableField = "marca_detectada" | "formato_detectado" | "variante_detectada";
 
 function parseBool(v: unknown): boolean {
   if (typeof v === "boolean") return v;
