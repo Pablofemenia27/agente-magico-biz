@@ -80,9 +80,12 @@ function ProductosPage() {
   const [items, setItems] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [onlySinFormato, setOnlySinFormato] = useState(false);
+  const [activoFilter, setActivoFilter] = useState<"todos" | "activos" | "inactivos">("todos");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Producto | null>(null);
-  const [form, setForm] = useState<Omit<Producto, "id">>({ nombre: "", precio: 0, stock: 0, activo: true });
+  const [form, setForm] = useState<{ nombre: string; precio: number; stock: number; activo: boolean }>({ nombre: "", precio: 0, stock: 0, activo: true });
+  const [inlineEdit, setInlineEdit] = useState<{ id: string; field: EditableField; value: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ created: number; updated: number; skipped: number; errors: string[] } | null>(null);
@@ -98,10 +101,19 @@ function ProductosPage() {
 
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [clienteId]);
 
-  const filtered = useMemo(
-    () => items.filter((p) => p.nombre.toLowerCase().includes(search.toLowerCase())),
-    [items, search]
-  );
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return items.filter((p) => {
+      if (activoFilter === "activos" && !p.activo) return false;
+      if (activoFilter === "inactivos" && p.activo) return false;
+      if (onlySinFormato && p.formato_detectado != null && String(p.formato_detectado).trim() !== "") return false;
+      if (!q) return true;
+      return (
+        p.nombre.toLowerCase().includes(q) ||
+        (p.marca_detectada ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [items, search, onlySinFormato, activoFilter]);
 
   const openNew = () => {
     setEditing(null);
