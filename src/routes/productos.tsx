@@ -156,6 +156,16 @@ function ProductosPage() {
     load();
   };
 
+  const saveInline = async () => {
+    if (!inlineEdit) return;
+    const { id, field, value } = inlineEdit;
+    const payload: Record<string, string | null> = { [field]: value.trim() === "" ? null : value.trim() };
+    const { error } = await supabase.from("productos").update(payload).eq("id", id);
+    if (error) return toast.error(error.message);
+    setItems((prev) => prev.map((p) => (p.id === id ? { ...p, ...payload } as Producto : p)));
+    setInlineEdit(null);
+  };
+
   const downloadTemplate = () => {
     const ws = XLSX.utils.json_to_sheet([
       { nombre: "Ejemplo Producto", precio: 1500, stock: 10, activo: "SI" },
