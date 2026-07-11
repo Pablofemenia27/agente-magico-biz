@@ -46,9 +46,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       // defer supabase calls out of the callback
       setTimeout(() => applySession(s), 0);
+      if (event === "PASSWORD_RECOVERY" && typeof window !== "undefined") {
+        if (window.location.pathname !== "/reset-password") {
+          window.location.replace("/reset-password");
+        }
+      }
     });
 
     supabase.auth.getSession().then(async ({ data }) => {

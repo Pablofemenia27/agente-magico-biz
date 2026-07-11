@@ -171,7 +171,7 @@ function MobileNav() {
   );
 }
 
-const PUBLIC_PATHS = new Set<string>(["/"]);
+const PUBLIC_PATHS = new Set<string>(["/", "/reset-password"]);
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
