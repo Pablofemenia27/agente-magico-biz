@@ -268,31 +268,48 @@ function ProductosPage() {
         </div>
       </header>
 
-      <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between mb-4">
-        <div className="relative w-full sm:max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar producto..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
+      <div className="flex flex-col gap-3 mb-4">
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
+          <div className="relative w-full sm:max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nombre o marca..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              className="hidden"
+              onChange={handleImportFile}
+            />
+            <Button variant="outline" onClick={downloadTemplate} title="Descargar plantilla Excel">
+              <Download className="h-4 w-4 mr-2" />Plantilla
+            </Button>
+            <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={importing}>
+              <Upload className="h-4 w-4 mr-2" />{importing ? "Importando..." : "Importar Excel"}
+            </Button>
+            <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" />Agregar producto</Button>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            className="hidden"
-            onChange={handleImportFile}
-          />
-          <Button variant="outline" onClick={downloadTemplate} title="Descargar plantilla Excel">
-            <Download className="h-4 w-4 mr-2" />Plantilla
-          </Button>
-          <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={importing}>
-            <Upload className="h-4 w-4 mr-2" />{importing ? "Importando..." : "Importar Excel"}
-          </Button>
-          <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" />Agregar producto</Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <Select value={activoFilter} onValueChange={(v) => setActivoFilter(v as typeof activoFilter)}>
+            <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              <SelectItem value="activos">Activos</SelectItem>
+              <SelectItem value="inactivos">Inactivos</SelectItem>
+            </SelectContent>
+          </Select>
+          <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+            <Switch checked={onlySinFormato} onCheckedChange={setOnlySinFormato} />
+            Solo sin formato detectado
+          </label>
+          <span className="text-xs text-muted-foreground ml-auto">{filtered.length} resultado{filtered.length === 1 ? "" : "s"}</span>
         </div>
       </div>
 
@@ -302,6 +319,10 @@ function ProductosPage() {
             <TableRow>
               <TableHead>Producto</TableHead>
               <TableHead>Precio</TableHead>
+              <TableHead>Marca</TableHead>
+              <TableHead>Formato</TableHead>
+              <TableHead>Variante</TableHead>
+              <TableHead>Unidad</TableHead>
               <TableHead>Stock</TableHead>
               <TableHead>Activo</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
@@ -309,13 +330,17 @@ function ProductosPage() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Cargando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Cargando...</TableCell></TableRow>
             ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Sin resultados</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Sin resultados</TableCell></TableRow>
             ) : filtered.map((p) => (
               <TableRow key={p.id}>
                 <TableCell className="font-medium">{p.nombre}</TableCell>
                 <TableCell>${p.precio.toLocaleString("es-AR")}</TableCell>
+                <InlineEditCell producto={p} field="marca_detectada" inlineEdit={inlineEdit} setInlineEdit={setInlineEdit} onSave={saveInline} />
+                <InlineEditCell producto={p} field="formato_detectado" inlineEdit={inlineEdit} setInlineEdit={setInlineEdit} onSave={saveInline} />
+                <InlineEditCell producto={p} field="variante_detectada" inlineEdit={inlineEdit} setInlineEdit={setInlineEdit} onSave={saveInline} />
+                <TableCell className="text-muted-foreground">{p.unidad_venta && String(p.unidad_venta).trim() !== "" ? p.unidad_venta : "-"}</TableCell>
                 <TableCell>{p.stock}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
