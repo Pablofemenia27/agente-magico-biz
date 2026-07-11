@@ -13,15 +13,30 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
-import { Package, Pencil, Plus, Search, Trash2, Upload, Download } from "lucide-react";
+import { Check, Package, Pencil, Plus, Search, Trash2, Upload, Download, X } from "lucide-react";
 
 export const Route = createFileRoute("/productos")({
   head: () => ({ meta: [{ title: "Productos — AgentPanel" }] }),
   component: ProductosPage,
 });
 
-type Producto = { id: string; nombre: string; precio: number; stock: number; activo: boolean };
+type Producto = {
+  id: string;
+  nombre: string;
+  precio: number;
+  stock: number;
+  activo: boolean;
+  marca_detectada: string | null;
+  formato_detectado: string | null;
+  variante_detectada: string | null;
+  unidad_venta: string | null;
+};
+
+type EditableField = "marca_detectada" | "formato_detectado" | "variante_detectada";
 
 function parseBool(v: unknown): boolean {
   if (typeof v === "boolean") return v;
@@ -65,9 +80,12 @@ function ProductosPage() {
   const [items, setItems] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [onlySinFormato, setOnlySinFormato] = useState(false);
+  const [activoFilter, setActivoFilter] = useState<"todos" | "activos" | "inactivos">("todos");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Producto | null>(null);
-  const [form, setForm] = useState<Omit<Producto, "id">>({ nombre: "", precio: 0, stock: 0, activo: true });
+  const [form, setForm] = useState<{ nombre: string; precio: number; stock: number; activo: boolean }>({ nombre: "", precio: 0, stock: 0, activo: true });
+  const [inlineEdit, setInlineEdit] = useState<{ id: string; field: EditableField; value: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ created: number; updated: number; skipped: number; errors: string[] } | null>(null);
@@ -83,10 +101,19 @@ function ProductosPage() {
 
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [clienteId]);
 
-  const filtered = useMemo(
-    () => items.filter((p) => p.nombre.toLowerCase().includes(search.toLowerCase())),
-    [items, search]
-  );
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return items.filter((p) => {
+      if (activoFilter === "activos" && !p.activo) return false;
+      if (activoFilter === "inactivos" && p.activo) return false;
+      if (onlySinFormato && p.formato_detectado != null && String(p.formato_detectado).trim() !== "") return false;
+      if (!q) return true;
+      return (
+        p.nombre.toLowerCase().includes(q) ||
+        (p.marca_detectada ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [items, search, onlySinFormato, activoFilter]);
 
   const openNew = () => {
     setEditing(null);
@@ -127,6 +154,16 @@ function ProductosPage() {
     const { error } = await supabase.from("productos").update({ activo: !p.activo }).eq("id", p.id);
     if (error) return toast.error(error.message);
     load();
+  };
+
+  const saveInline = async () => {
+    if (!inlineEdit) return;
+    const { id, field, value } = inlineEdit;
+    const payload: Record<string, string | null> = { [field]: value.trim() === "" ? null : value.trim() };
+    const { error } = await supabase.from("productos").update(payload as never).eq("id", id);
+    if (error) return toast.error(error.message);
+    setItems((prev) => prev.map((p) => (p.id === id ? { ...p, ...payload } as Producto : p)));
+    setInlineEdit(null);
   };
 
   const downloadTemplate = () => {
@@ -231,31 +268,48 @@ function ProductosPage() {
         </div>
       </header>
 
-      <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between mb-4">
-        <div className="relative w-full sm:max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar producto..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
+      <div className="flex flex-col gap-3 mb-4">
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
+          <div className="relative w-full sm:max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nombre o marca..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              className="hidden"
+              onChange={handleImportFile}
+            />
+            <Button variant="outline" onClick={downloadTemplate} title="Descargar plantilla Excel">
+              <Download className="h-4 w-4 mr-2" />Plantilla
+            </Button>
+            <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={importing}>
+              <Upload className="h-4 w-4 mr-2" />{importing ? "Importando..." : "Importar Excel"}
+            </Button>
+            <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" />Agregar producto</Button>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            className="hidden"
-            onChange={handleImportFile}
-          />
-          <Button variant="outline" onClick={downloadTemplate} title="Descargar plantilla Excel">
-            <Download className="h-4 w-4 mr-2" />Plantilla
-          </Button>
-          <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={importing}>
-            <Upload className="h-4 w-4 mr-2" />{importing ? "Importando..." : "Importar Excel"}
-          </Button>
-          <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" />Agregar producto</Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <Select value={activoFilter} onValueChange={(v) => setActivoFilter(v as typeof activoFilter)}>
+            <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              <SelectItem value="activos">Activos</SelectItem>
+              <SelectItem value="inactivos">Inactivos</SelectItem>
+            </SelectContent>
+          </Select>
+          <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+            <Switch checked={onlySinFormato} onCheckedChange={setOnlySinFormato} />
+            Solo sin formato detectado
+          </label>
+          <span className="text-xs text-muted-foreground ml-auto">{filtered.length} resultado{filtered.length === 1 ? "" : "s"}</span>
         </div>
       </div>
 
@@ -265,6 +319,10 @@ function ProductosPage() {
             <TableRow>
               <TableHead>Producto</TableHead>
               <TableHead>Precio</TableHead>
+              <TableHead>Marca</TableHead>
+              <TableHead>Formato</TableHead>
+              <TableHead>Variante</TableHead>
+              <TableHead>Unidad</TableHead>
               <TableHead>Stock</TableHead>
               <TableHead>Activo</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
@@ -272,13 +330,17 @@ function ProductosPage() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Cargando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Cargando...</TableCell></TableRow>
             ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Sin resultados</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Sin resultados</TableCell></TableRow>
             ) : filtered.map((p) => (
               <TableRow key={p.id}>
                 <TableCell className="font-medium">{p.nombre}</TableCell>
                 <TableCell>${p.precio.toLocaleString("es-AR")}</TableCell>
+                <InlineEditCell producto={p} field="marca_detectada" inlineEdit={inlineEdit} setInlineEdit={setInlineEdit} onSave={saveInline} />
+                <InlineEditCell producto={p} field="formato_detectado" inlineEdit={inlineEdit} setInlineEdit={setInlineEdit} onSave={saveInline} />
+                <InlineEditCell producto={p} field="variante_detectada" inlineEdit={inlineEdit} setInlineEdit={setInlineEdit} onSave={saveInline} />
+                <TableCell className="text-muted-foreground">{p.unidad_venta && String(p.unidad_venta).trim() !== "" ? p.unidad_venta : "-"}</TableCell>
                 <TableCell>{p.stock}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
@@ -372,5 +434,69 @@ function Stat({ label, value }: { label: string; value: number }) {
       <div className="text-2xl font-semibold">{value}</div>
       <div className="text-xs text-muted-foreground">{label}</div>
     </div>
+  );
+}
+
+type InlineEditState = { id: string; field: EditableField; value: string } | null;
+
+function InlineEditCell({
+  producto,
+  field,
+  inlineEdit,
+  setInlineEdit,
+  onSave,
+}: {
+  producto: Producto;
+  field: EditableField;
+  inlineEdit: InlineEditState;
+  setInlineEdit: (s: InlineEditState) => void;
+  onSave: () => void;
+}) {
+  const isEditing = inlineEdit?.id === producto.id && inlineEdit.field === field;
+  const current = producto[field];
+  const display = current && String(current).trim() !== "" ? String(current) : "-";
+
+  if (isEditing) {
+    return (
+      <TableCell>
+        <div className="flex items-center gap-1">
+          <Input
+            autoFocus
+            value={inlineEdit!.value}
+            onChange={(e) => setInlineEdit({ ...inlineEdit!, value: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") onSave();
+              else if (e.key === "Escape") setInlineEdit(null);
+            }}
+            className="h-8 w-32"
+          />
+          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onSave}>
+            <Check className="h-3.5 w-3.5" />
+          </Button>
+          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setInlineEdit(null)}>
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </TableCell>
+    );
+  }
+
+  return (
+    <TableCell
+      onDoubleClick={() => setInlineEdit({ id: producto.id, field, value: current ?? "" })}
+      className="group cursor-pointer"
+    >
+      <div className="flex items-center gap-2">
+        <span className={display === "-" ? "text-muted-foreground" : ""}>{display}</span>
+        <button
+          type="button"
+          onClick={() => setInlineEdit({ id: producto.id, field, value: current ?? "" })}
+          className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition"
+          title="Editar"
+        >
+          <Pencil className="h-3 w-3" />
+        </button>
+      </div>
+    </TableCell>
   );
 }

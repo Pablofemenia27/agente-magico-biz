@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2, Users } from "lucide-react";
+import { Pencil, Plus, Search, Trash2, Users } from "lucide-react";
 
 export const Route = createFileRoute("/clientes")({
   head: () => ({ meta: [{ title: "Clientes — AgentPanel" }] }),
@@ -43,6 +43,13 @@ function ClientesPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Cliente | null>(null);
   const [form, setForm] = useState<Omit<Cliente, "id">>({ telefono: "", nombre: "", condicion: "nuevo" });
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((c) => c.nombre.toLowerCase().includes(q) || c.telefono.toLowerCase().includes(q));
+  }, [items, search]);
 
   const load = async () => {
     if (!clienteId) return;
@@ -98,7 +105,16 @@ function ClientesPage() {
         </div>
       </header>
 
-      <div className="flex justify-end mb-4">
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between mb-4">
+        <div className="relative w-full sm:max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nombre o teléfono..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
         <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" />Agregar cliente</Button>
       </div>
 
@@ -115,9 +131,9 @@ function ClientesPage() {
           <TableBody>
             {loading ? (
               <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Cargando...</TableCell></TableRow>
-            ) : items.length === 0 ? (
+            ) : filtered.length === 0 ? (
               <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Sin clientes</TableCell></TableRow>
-            ) : items.map((c) => (
+            ) : filtered.map((c) => (
               <TableRow key={c.id}>
                 <TableCell className="font-mono text-sm">{c.telefono}</TableCell>
                 <TableCell className="font-medium">{c.nombre}</TableCell>

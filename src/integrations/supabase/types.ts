@@ -102,26 +102,38 @@ export type Database = {
         Row: {
           activo: boolean
           created_at: string
+          formato_detectado: string | null
           id: string
+          marca_detectada: string | null
           nombre: string
           precio: number
           stock: number
+          unidad_venta: string | null
+          variante_detectada: string | null
         }
         Insert: {
           activo?: boolean
           created_at?: string
+          formato_detectado?: string | null
           id?: string
+          marca_detectada?: string | null
           nombre: string
           precio?: number
           stock?: number
+          unidad_venta?: string | null
+          variante_detectada?: string | null
         }
         Update: {
           activo?: boolean
           created_at?: string
+          formato_detectado?: string | null
           id?: string
+          marca_detectada?: string | null
           nombre?: string
           precio?: number
           stock?: number
+          unidad_venta?: string | null
+          variante_detectada?: string | null
         }
         Relationships: []
       }
