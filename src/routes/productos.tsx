@@ -160,7 +160,7 @@ function ProductosPage() {
     if (!inlineEdit) return;
     const { id, field, value } = inlineEdit;
     const payload: Record<string, string | null> = { [field]: value.trim() === "" ? null : value.trim() };
-    const { error } = await supabase.from("productos").update(payload).eq("id", id);
+    const { error } = await supabase.from("productos").update(payload as never).eq("id", id);
     if (error) return toast.error(error.message);
     setItems((prev) => prev.map((p) => (p.id === id ? { ...p, ...payload } as Producto : p)));
     setInlineEdit(null);
