@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2, Users } from "lucide-react";
+import { Pencil, Plus, Search, Trash2, Users } from "lucide-react";
 
 export const Route = createFileRoute("/clientes")({
   head: () => ({ meta: [{ title: "Clientes — AgentPanel" }] }),
@@ -43,6 +43,13 @@ function ClientesPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Cliente | null>(null);
   const [form, setForm] = useState<Omit<Cliente, "id">>({ telefono: "", nombre: "", condicion: "nuevo" });
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((c) => c.nombre.toLowerCase().includes(q) || c.telefono.toLowerCase().includes(q));
+  }, [items, search]);
 
   const load = async () => {
     if (!clienteId) return;
