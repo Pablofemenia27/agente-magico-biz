@@ -436,3 +436,67 @@ function Stat({ label, value }: { label: string; value: number }) {
     </div>
   );
 }
+
+type InlineEditState = { id: string; field: EditableField; value: string } | null;
+
+function InlineEditCell({
+  producto,
+  field,
+  inlineEdit,
+  setInlineEdit,
+  onSave,
+}: {
+  producto: Producto;
+  field: EditableField;
+  inlineEdit: InlineEditState;
+  setInlineEdit: (s: InlineEditState) => void;
+  onSave: () => void;
+}) {
+  const isEditing = inlineEdit?.id === producto.id && inlineEdit.field === field;
+  const current = producto[field];
+  const display = current && String(current).trim() !== "" ? String(current) : "-";
+
+  if (isEditing) {
+    return (
+      <TableCell>
+        <div className="flex items-center gap-1">
+          <Input
+            autoFocus
+            value={inlineEdit!.value}
+            onChange={(e) => setInlineEdit({ ...inlineEdit!, value: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") onSave();
+              else if (e.key === "Escape") setInlineEdit(null);
+            }}
+            className="h-8 w-32"
+          />
+          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onSave}>
+            <Check className="h-3.5 w-3.5" />
+          </Button>
+          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setInlineEdit(null)}>
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </TableCell>
+    );
+  }
+
+  return (
+    <TableCell
+      onDoubleClick={() => setInlineEdit({ id: producto.id, field, value: current ?? "" })}
+      className="group cursor-pointer"
+    >
+      <div className="flex items-center gap-2">
+        <span className={display === "-" ? "text-muted-foreground" : ""}>{display}</span>
+        <button
+          type="button"
+          onClick={() => setInlineEdit({ id: producto.id, field, value: current ?? "" })}
+          className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition"
+          title="Editar"
+        >
+          <Pencil className="h-3 w-3" />
+        </button>
+      </div>
+    </TableCell>
+  );
+}
