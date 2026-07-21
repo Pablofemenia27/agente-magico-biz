@@ -8,7 +8,7 @@ import {
   useNavigate,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { Building2, Package, Users, MessageSquare, Bot, LayoutDashboard, LogOut, Loader2, Shield } from "lucide-react";
+import { Building2, Package, Users, MessageSquare, Bot, LayoutDashboard, LogOut, Loader2, Shield, ClipboardCheck } from "lucide-react";
 import { ADMIN_EMAIL } from "./admin";
 
 import { reportLovableError } from "../lib/lovable-error-reporting";
