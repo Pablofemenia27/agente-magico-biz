@@ -22,13 +22,20 @@ type Business = {
   formas_pago: string;
   zona_entrega: string;
   telefono: string;
+  nombre_agente?: string | null;
+  tono?: string | null;
+  reglas_escalado?: string | null;
+  instrucciones_extra?: string | null;
 };
+
+const TONOS = ["formal", "cercano", "divertido", "profesional", "neutro"] as const;
 
 function MiNegocioPage() {
   const { clienteId } = useAuth();
   const [data, setData] = useState<Business | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingAgent, setSavingAgent] = useState(false);
 
   useEffect(() => {
     if (!clienteId) return;
@@ -65,11 +72,29 @@ function MiNegocioPage() {
     else toast.success("Cambios guardados");
   };
 
-  const update = (k: keyof Business, v: string) => setData((d) => (d ? { ...d, [k]: v } : d));
+  const handleSaveAgent = async () => {
+    if (!data) return;
+    setSavingAgent(true);
+    const { error } = await supabase
+      .from("business_info")
+      .update({
+        nombre_agente: data.nombre_agente ?? "",
+        tono: data.tono ?? "",
+        reglas_escalado: data.reglas_escalado ?? "",
+        instrucciones_extra: data.instrucciones_extra ?? "",
+      } as never)
+      .eq("id", data.id);
+    setSavingAgent(false);
+    if (error) toast.error("Error al guardar: " + error.message);
+    else toast.success("Personalización guardada");
+  };
+
+  const update = <K extends keyof Business>(k: K, v: Business[K]) =>
+    setData((d) => (d ? { ...d, [k]: v } : d));
 
   return (
-    <div className="p-6 md:p-10 max-w-3xl">
-      <header className="mb-8 flex items-center gap-3">
+    <div className="p-6 md:p-10 max-w-3xl space-y-6">
+      <header className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
           <Building2 className="h-5 w-5" />
         </div>
@@ -82,33 +107,82 @@ function MiNegocioPage() {
       {loading || !data ? (
         <div className="text-muted-foreground">Cargando...</div>
       ) : (
-        <div className="bg-card border border-border rounded-xl p-6 md:p-8 space-y-5 shadow-sm">
-          <div className="grid md:grid-cols-2 gap-5">
-            <Field label="Nombre del negocio">
-              <Input value={data.nombre} onChange={(e) => update("nombre", e.target.value)} placeholder="Ej: Pizzería Don Carlos" />
+        <>
+          <div className="bg-card border border-border rounded-xl p-6 md:p-8 space-y-5 shadow-sm">
+            <div className="grid md:grid-cols-2 gap-5">
+              <Field label="Nombre del negocio">
+                <Input value={data.nombre} onChange={(e) => update("nombre", e.target.value)} placeholder="Ej: Pizzería Don Carlos" />
+              </Field>
+              <Field label="Teléfono del dueño">
+                <Input value={data.telefono} onChange={(e) => update("telefono", e.target.value)} placeholder="+54 9 11 ..." />
+              </Field>
+              <Field label="Horario de atención">
+                <Input value={data.horario} onChange={(e) => update("horario", e.target.value)} placeholder="Lun a Vie 9 a 18hs" />
+              </Field>
+              <Field label="Mínimo de compra">
+                <Input value={data.minimo_compra} onChange={(e) => update("minimo_compra", e.target.value)} placeholder="$ 5.000" />
+              </Field>
+            </div>
+            <Field label="Formas de pago">
+              <Textarea rows={2} value={data.formas_pago} onChange={(e) => update("formas_pago", e.target.value)} placeholder="Efectivo, transferencia, MercadoPago..." />
             </Field>
-            <Field label="Teléfono del dueño">
-              <Input value={data.telefono} onChange={(e) => update("telefono", e.target.value)} placeholder="+54 9 11 ..." />
+            <Field label="Zona de entrega">
+              <Textarea rows={2} value={data.zona_entrega} onChange={(e) => update("zona_entrega", e.target.value)} placeholder="CABA y GBA Norte" />
             </Field>
-            <Field label="Horario de atención">
-              <Input value={data.horario} onChange={(e) => update("horario", e.target.value)} placeholder="Lun a Vie 9 a 18hs" />
-            </Field>
-            <Field label="Mínimo de compra">
-              <Input value={data.minimo_compra} onChange={(e) => update("minimo_compra", e.target.value)} placeholder="$ 5.000" />
-            </Field>
+            <div className="flex justify-end pt-2">
+              <Button onClick={handleSave} disabled={saving} size="lg">
+                {saving ? "Guardando..." : "Guardar cambios"}
+              </Button>
+            </div>
           </div>
-          <Field label="Formas de pago">
-            <Textarea rows={2} value={data.formas_pago} onChange={(e) => update("formas_pago", e.target.value)} placeholder="Efectivo, transferencia, MercadoPago..." />
-          </Field>
-          <Field label="Zona de entrega">
-            <Textarea rows={2} value={data.zona_entrega} onChange={(e) => update("zona_entrega", e.target.value)} placeholder="CABA y GBA Norte" />
-          </Field>
-          <div className="flex justify-end pt-2">
-            <Button onClick={handleSave} disabled={saving} size="lg">
-              {saving ? "Guardando..." : "Guardar cambios"}
-            </Button>
+
+          <div className="bg-card border border-border rounded-xl p-6 md:p-8 space-y-5 shadow-sm">
+            <div>
+              <h2 className="text-lg font-semibold">Personalización del agente</h2>
+              <p className="text-sm text-muted-foreground">Configurá cómo se comunica y cuándo escalar a un humano.</p>
+            </div>
+            <div className="grid md:grid-cols-2 gap-5">
+              <Field label="Nombre del agente">
+                <Input
+                  value={data.nombre_agente ?? ""}
+                  onChange={(e) => update("nombre_agente", e.target.value)}
+                  placeholder="Sofía"
+                />
+              </Field>
+              <Field label="Tono">
+                <select
+                  value={data.tono ?? ""}
+                  onChange={(e) => update("tono", e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Elegí un tono</option>
+                  {TONOS.map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </Field>
+            </div>
+            <Field label="Reglas de escalado">
+              <Textarea
+                rows={3}
+                value={data.reglas_escalado ?? ""}
+                onChange={(e) => update("reglas_escalado", e.target.value)}
+                placeholder="Ej: escalar cuando pidan facturación, reclamos o pedidos > $50.000"
+              />
+            </Field>
+            <Field label="Instrucciones adicionales">
+              <Textarea
+                rows={4}
+                value={data.instrucciones_extra ?? ""}
+                onChange={(e) => update("instrucciones_extra", e.target.value)}
+                placeholder="Cualquier indicación extra para el comportamiento del agente..."
+              />
+            </Field>
+            <div className="flex justify-end pt-2">
+              <Button onClick={handleSaveAgent} disabled={savingAgent} size="lg">
+                {savingAgent ? "Guardando..." : "Guardar personalización"}
+              </Button>
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

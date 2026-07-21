@@ -84,6 +84,11 @@ function AdminPage() {
   const [submitting, setSubmitting] = useState(false);
   const [lastCreated, setLastCreated] = useState<{ email: string; password: string } | null>(null);
 
+  const [nombreAgente, setNombreAgente] = useState("");
+  const [tono, setTono] = useState("");
+  const [reglasEscalado, setReglasEscalado] = useState("");
+  const [instruccionesExtra, setInstruccionesExtra] = useState("");
+
   const [negocios, setNegocios] = useState<Negocio[] | null>(null);
   const [listError, setListError] = useState<string | null>(null);
 
@@ -134,11 +139,31 @@ function AdminPage() {
             slug: computedSlug,
             email: email.trim(),
             password,
+            nombre_agente: nombreAgente.trim(),
+            tono: tono.trim(),
+            reglas_escalado: reglasEscalado.trim(),
+            instrucciones_extra: instruccionesExtra.trim(),
           }),
         }
       );
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Error al crear cliente');
+
+      // Best-effort fallback: si el edge function no persiste la personalización,
+      // buscamos el negocio recién creado y actualizamos business_info.
+      const nuevoNegocioId = (result?.negocio?.id ?? result?.id ?? null) as string | null;
+      const clienteIdCreado = (result?.cliente_id ?? result?.negocio?.cliente_id ?? null) as string | null;
+      const agentePayload = {
+        nombre_agente: nombreAgente.trim() || null,
+        tono: tono.trim() || null,
+        reglas_escalado: reglasEscalado.trim() || null,
+        instrucciones_extra: instruccionesExtra.trim() || null,
+      };
+      if (clienteIdCreado) {
+        await supabase.from("business_info").update(agentePayload as never).eq("cliente_id" as never, clienteIdCreado);
+      } else if (nuevoNegocioId) {
+        await supabase.from("business_info").update(agentePayload as never).eq("negocio_id" as never, nuevoNegocioId);
+      }
 
       setLastCreated({ email: email.trim(), password });
       toast.success("Cliente creado correctamente");
@@ -147,6 +172,10 @@ function AdminPage() {
       setPassword("");
       setSlug("");
       setSlugTouched(false);
+      setNombreAgente("");
+      setTono("");
+      setReglasEscalado("");
+      setInstruccionesExtra("");
       await loadNegocios();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al crear cliente");
@@ -264,6 +293,60 @@ function AdminPage() {
               required
             />
           </div>
+
+          <div className="md:col-span-2 mt-2 pt-4 border-t">
+            <h3 className="text-sm font-semibold mb-3">Personalización del agente</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="nombre_agente">Nombre del agente</Label>
+                <Input
+                  id="nombre_agente"
+                  value={nombreAgente}
+                  onChange={(e) => setNombreAgente(e.target.value)}
+                  placeholder="Sofía"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tono">Tono</Label>
+                <select
+                  id="tono"
+                  value={tono}
+                  onChange={(e) => setTono(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Elegí un tono</option>
+                  <option value="formal">formal</option>
+                  <option value="cercano">cercano</option>
+                  <option value="divertido">divertido</option>
+                  <option value="profesional">profesional</option>
+                  <option value="neutro">neutro</option>
+                </select>
+              </div>
+              <div className="md:col-span-2 space-y-2">
+                <Label htmlFor="reglas_escalado">Reglas de escalado</Label>
+                <textarea
+                  id="reglas_escalado"
+                  rows={2}
+                  value={reglasEscalado}
+                  onChange={(e) => setReglasEscalado(e.target.value)}
+                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  placeholder="Ej: escalar cuando pidan facturación o reclamos"
+                />
+              </div>
+              <div className="md:col-span-2 space-y-2">
+                <Label htmlFor="instrucciones_extra">Instrucciones adicionales</Label>
+                <textarea
+                  id="instrucciones_extra"
+                  rows={3}
+                  value={instruccionesExtra}
+                  onChange={(e) => setInstruccionesExtra(e.target.value)}
+                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  placeholder="Indicaciones extra para el comportamiento del agente"
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="md:col-span-2 flex items-center justify-end gap-3">
             <Button type="submit" disabled={submitting}>
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crear cliente"}

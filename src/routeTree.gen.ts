@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RevisionProductosRouteImport } from './routes/revision-productos'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ProductosRouteImport } from './routes/productos'
 import { Route as MiNegocioRouteImport } from './routes/mi-negocio'
@@ -18,6 +19,11 @@ import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 
+const RevisionProductosRoute = RevisionProductosRouteImport.update({
+  id: '/revision-productos',
+  path: '/revision-productos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -68,6 +74,7 @@ export interface FileRoutesByFullPath {
   '/mi-negocio': typeof MiNegocioRoute
   '/productos': typeof ProductosRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/revision-productos': typeof RevisionProductosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -78,6 +85,7 @@ export interface FileRoutesByTo {
   '/mi-negocio': typeof MiNegocioRoute
   '/productos': typeof ProductosRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/revision-productos': typeof RevisionProductosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -89,6 +97,7 @@ export interface FileRoutesById {
   '/mi-negocio': typeof MiNegocioRoute
   '/productos': typeof ProductosRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/revision-productos': typeof RevisionProductosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +110,7 @@ export interface FileRouteTypes {
     | '/mi-negocio'
     | '/productos'
     | '/reset-password'
+    | '/revision-productos'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/mi-negocio'
     | '/productos'
     | '/reset-password'
+    | '/revision-productos'
   id:
     | '__root__'
     | '/'
@@ -121,6 +132,7 @@ export interface FileRouteTypes {
     | '/mi-negocio'
     | '/productos'
     | '/reset-password'
+    | '/revision-productos'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -132,10 +144,18 @@ export interface RootRouteChildren {
   MiNegocioRoute: typeof MiNegocioRoute
   ProductosRoute: typeof ProductosRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  RevisionProductosRoute: typeof RevisionProductosRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/revision-productos': {
+      id: '/revision-productos'
+      path: '/revision-productos'
+      fullPath: '/revision-productos'
+      preLoaderRoute: typeof RevisionProductosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -204,6 +224,7 @@ const rootRouteChildren: RootRouteChildren = {
   MiNegocioRoute: MiNegocioRoute,
   ProductosRoute: ProductosRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  RevisionProductosRoute: RevisionProductosRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

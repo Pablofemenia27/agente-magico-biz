@@ -8,7 +8,7 @@ import {
   useNavigate,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { Building2, Package, Users, MessageSquare, Bot, LayoutDashboard, LogOut, Loader2, Shield } from "lucide-react";
+import { Building2, Package, Users, MessageSquare, Bot, LayoutDashboard, LogOut, Loader2, Shield, ClipboardCheck } from "lucide-react";
 import { ADMIN_EMAIL } from "./admin";
 
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -60,6 +60,7 @@ const baseNavItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/mi-negocio", label: "Mi Negocio", icon: Building2 },
   { to: "/productos", label: "Productos", icon: Package },
+  { to: "/revision-productos", label: "Revisión", icon: ClipboardCheck },
   { to: "/clientes", label: "Clientes", icon: Users },
   { to: "/conversaciones", label: "Conversaciones", icon: MessageSquare },
 ] as const;
@@ -174,10 +175,11 @@ function MobileNav() {
 const PUBLIC_PATHS = new Set<string>(["/", "/reset-password"]);
 
 function AuthGate({ children }: { children: React.ReactNode }) {
-  const { session, loading } = useAuth();
+  const { session, loading, clienteId, signOut, user } = useAuth();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const isPublic = PUBLIC_PATHS.has(pathname);
+  const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   useEffect(() => {
     if (loading) return;
@@ -200,6 +202,31 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // Session but no business assigned (non-admin) → friendly screen
+  if (!clienteId && !isAdmin) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-6">
+        <div className="max-w-md w-full text-center space-y-4 rounded-xl border border-border bg-card p-8 shadow-sm">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-destructive/15 text-destructive">
+            <Shield className="h-6 w-6" />
+          </div>
+          <h1 className="text-xl font-semibold">Tu cuenta no tiene un negocio asignado</h1>
+          <p className="text-sm text-muted-foreground">
+            Contactá al administrador para que vincule tu usuario a un negocio.
+          </p>
+          {user?.email && <p className="text-xs text-muted-foreground">Sesión: {user.email}</p>}
+          <button
+            onClick={async () => { await signOut(); navigate({ to: "/", replace: true }); }}
+            className="mt-2 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <LogOut className="h-4 w-4" />
+            Cerrar sesión
+          </button>
+        </div>
       </div>
     );
   }
