@@ -293,6 +293,60 @@ function AdminPage() {
               required
             />
           </div>
+
+          <div className="md:col-span-2 mt-2 pt-4 border-t">
+            <h3 className="text-sm font-semibold mb-3">Personalización del agente</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="nombre_agente">Nombre del agente</Label>
+                <Input
+                  id="nombre_agente"
+                  value={nombreAgente}
+                  onChange={(e) => setNombreAgente(e.target.value)}
+                  placeholder="Sofía"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tono">Tono</Label>
+                <select
+                  id="tono"
+                  value={tono}
+                  onChange={(e) => setTono(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Elegí un tono</option>
+                  <option value="formal">formal</option>
+                  <option value="cercano">cercano</option>
+                  <option value="divertido">divertido</option>
+                  <option value="profesional">profesional</option>
+                  <option value="neutro">neutro</option>
+                </select>
+              </div>
+              <div className="md:col-span-2 space-y-2">
+                <Label htmlFor="reglas_escalado">Reglas de escalado</Label>
+                <textarea
+                  id="reglas_escalado"
+                  rows={2}
+                  value={reglasEscalado}
+                  onChange={(e) => setReglasEscalado(e.target.value)}
+                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  placeholder="Ej: escalar cuando pidan facturación o reclamos"
+                />
+              </div>
+              <div className="md:col-span-2 space-y-2">
+                <Label htmlFor="instrucciones_extra">Instrucciones adicionales</Label>
+                <textarea
+                  id="instrucciones_extra"
+                  rows={3}
+                  value={instruccionesExtra}
+                  onChange={(e) => setInstruccionesExtra(e.target.value)}
+                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  placeholder="Indicaciones extra para el comportamiento del agente"
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="md:col-span-2 flex items-center justify-end gap-3">
             <Button type="submit" disabled={submitting}>
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crear cliente"}
