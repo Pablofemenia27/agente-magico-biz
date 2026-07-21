@@ -139,11 +139,31 @@ function AdminPage() {
             slug: computedSlug,
             email: email.trim(),
             password,
+            nombre_agente: nombreAgente.trim(),
+            tono: tono.trim(),
+            reglas_escalado: reglasEscalado.trim(),
+            instrucciones_extra: instruccionesExtra.trim(),
           }),
         }
       );
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Error al crear cliente');
+
+      // Best-effort fallback: si el edge function no persiste la personalización,
+      // buscamos el negocio recién creado y actualizamos business_info.
+      const nuevoNegocioId = (result?.negocio?.id ?? result?.id ?? null) as string | null;
+      const clienteIdCreado = (result?.cliente_id ?? result?.negocio?.cliente_id ?? null) as string | null;
+      const agentePayload = {
+        nombre_agente: nombreAgente.trim() || null,
+        tono: tono.trim() || null,
+        reglas_escalado: reglasEscalado.trim() || null,
+        instrucciones_extra: instruccionesExtra.trim() || null,
+      };
+      if (clienteIdCreado) {
+        await supabase.from("business_info").update(agentePayload as never).eq("cliente_id" as never, clienteIdCreado);
+      } else if (nuevoNegocioId) {
+        await supabase.from("business_info").update(agentePayload as never).eq("negocio_id" as never, nuevoNegocioId);
+      }
 
       setLastCreated({ email: email.trim(), password });
       toast.success("Cliente creado correctamente");
@@ -152,6 +172,10 @@ function AdminPage() {
       setPassword("");
       setSlug("");
       setSlugTouched(false);
+      setNombreAgente("");
+      setTono("");
+      setReglasEscalado("");
+      setInstruccionesExtra("");
       await loadNegocios();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al crear cliente");
