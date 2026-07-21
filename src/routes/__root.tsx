@@ -60,6 +60,7 @@ const baseNavItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/mi-negocio", label: "Mi Negocio", icon: Building2 },
   { to: "/productos", label: "Productos", icon: Package },
+  { to: "/revision-productos", label: "Revisión", icon: ClipboardCheck },
   { to: "/clientes", label: "Clientes", icon: Users },
   { to: "/conversaciones", label: "Conversaciones", icon: MessageSquare },
 ] as const;
