@@ -84,6 +84,11 @@ function AdminPage() {
   const [submitting, setSubmitting] = useState(false);
   const [lastCreated, setLastCreated] = useState<{ email: string; password: string } | null>(null);
 
+  const [nombreAgente, setNombreAgente] = useState("");
+  const [tono, setTono] = useState("");
+  const [reglasEscalado, setReglasEscalado] = useState("");
+  const [instruccionesExtra, setInstruccionesExtra] = useState("");
+
   const [negocios, setNegocios] = useState<Negocio[] | null>(null);
   const [listError, setListError] = useState<string | null>(null);
 
