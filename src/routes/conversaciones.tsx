@@ -105,7 +105,10 @@ function ConversacionesPage() {
           .select("id, fecha, cliente, telefono, mensaje, respuesta, estado, origen" as never)
           .eq("cliente_id" as never, clienteId)
           .order("fecha", { ascending: false }),
-        supabase.from("clientes").select("telefono,nombre").eq("cliente_id" as never, clienteId),
+        supabase
+          .from("clientes")
+          .select("telefono,nombre")
+          .eq("cliente_id" as never, clienteId),
       ]);
       if (convRes.error) toast.error(convRes.error.message);
       else setItems((convRes.data as unknown as Conv[]) ?? []);
@@ -124,7 +127,7 @@ function ConversacionesPage() {
     const groups = new Map<string, Conv[]>();
     for (const c of items) {
       const k =
-        (c.telefono && c.telefono.trim() !== "" ? c.telefono : c.cliente ?? "").trim() ||
+        (c.telefono && c.telefono.trim() !== "" ? c.telefono : (c.cliente ?? "")).trim() ||
         "sin-id";
       if (!groups.has(k)) groups.set(k, []);
       groups.get(k)!.push(c);
@@ -132,7 +135,7 @@ function ConversacionesPage() {
     const list: Thread[] = [];
     for (const [key, arr] of groups.entries()) {
       const sorted = [...arr].sort(
-        (a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
+        (a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime(),
       );
       const last = sorted[sorted.length - 1];
       const rawNombre = nombreByTelefono.get(key);
@@ -180,7 +183,9 @@ function ConversacionesPage() {
   const filteredThreads = useMemo(() => {
     let base = threads;
     if (filtro === "atencion") {
-      base = base.filter((t) => t.estadoActual === "escalado" || t.estadoActual === "manual_activo");
+      base = base.filter(
+        (t) => t.estadoActual === "escalado" || t.estadoActual === "manual_activo",
+      );
     }
     const q = search.trim().toLowerCase();
     if (!q) return base;
@@ -188,7 +193,7 @@ function ConversacionesPage() {
       (t) =>
         t.nombre.toLowerCase().includes(q) ||
         t.telefono.toLowerCase().includes(q) ||
-        t.key.toLowerCase().includes(q)
+        t.key.toLowerCase().includes(q),
     );
   }, [threads, search, filtro]);
 
@@ -196,12 +201,12 @@ function ConversacionesPage() {
     () =>
       threads.filter((t) => t.estadoActual === "escalado" || t.estadoActual === "manual_activo")
         .length,
-    [threads]
+    [threads],
   );
 
   const selected = useMemo(
     () => threads.find((t) => t.key === selectedKey) ?? null,
-    [threads, selectedKey]
+    [threads, selectedKey],
   );
 
   const puedeResponder = selected ? esTelefonoReal(selected.key) : false;
@@ -295,8 +300,8 @@ function ConversacionesPage() {
         prev.map((c) =>
           c.telefono === selected.key && c.estado === "manual_activo"
             ? { ...c, estado: "respondido" as Estado }
-            : c
-        )
+            : c,
+        ),
       );
       toast.success("Roma vuelve a responder esta conversación");
     } finally {
@@ -339,7 +344,7 @@ function ConversacionesPage() {
                   "rounded-full px-3 py-1 text-xs font-medium border transition-colors cursor-pointer",
                   filtro === "todas"
                     ? "bg-primary/10 border-primary/30 text-primary"
-                    : "border-border text-muted-foreground hover:bg-muted/40"
+                    : "border-border text-muted-foreground hover:bg-muted/40",
                 )}
               >
                 Todas
@@ -350,7 +355,7 @@ function ConversacionesPage() {
                   "rounded-full px-3 py-1 text-xs font-medium border transition-colors cursor-pointer",
                   filtro === "atencion"
                     ? "bg-warning/15 border-warning/30 text-warning"
-                    : "border-border text-muted-foreground hover:bg-muted/40"
+                    : "border-border text-muted-foreground hover:bg-muted/40",
                 )}
               >
                 Requieren atención
@@ -378,7 +383,7 @@ function ConversacionesPage() {
                     onClick={() => setSelectedKey(t.key)}
                     className={cn(
                       "w-full text-left px-4 py-3 border-b border-border/60 transition-colors hover:bg-muted/40 cursor-pointer",
-                      active && "bg-primary/10 hover:bg-primary/10"
+                      active && "bg-primary/10 hover:bg-primary/10",
                     )}
                   >
                     <div className="flex items-center justify-between gap-2 mb-1">
@@ -443,8 +448,8 @@ function ConversacionesPage() {
               {tomadaAMano && (
                 <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-primary/10 border-b border-primary/20">
                   <p className="text-xs text-primary">
-                    <strong>Estás atendiendo vos.</strong> Roma no va a responder esta
-                    conversación hasta que la devuelvas.
+                    <strong>Estás atendiendo vos.</strong> Roma no va a responder esta conversación
+                    hasta que la devuelvas.
                   </p>
                   <Button
                     size="sm"
@@ -479,9 +484,7 @@ function ConversacionesPage() {
                           <div
                             className={cn(
                               "rounded-2xl rounded-tr-sm px-4 py-2 text-sm whitespace-pre-wrap break-words",
-                              esManual
-                                ? "bg-primary text-primary-foreground"
-                                : "text-white"
+                              esManual ? "bg-primary text-primary-foreground" : "text-white",
                             )}
                             style={esManual ? undefined : { backgroundColor: "#C8A96E" }}
                           >
